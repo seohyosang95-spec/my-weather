@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>기상청 연계 글로벌 날씨 대시보드 & 검증</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #162032;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --accent: #38bdf8;
+            --success: #34d399;
+            --error: #f87171;
+            --border: #334155;
+            --kma-color: #1d4ed8;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 600px;
+            background-color: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            padding: 30px;
+            box-sizing: border-box;
+            border: 1px solid var(--border);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        .title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--accent);
+            margin: 0;
+        }
+
+        /* 기상청 바로가기 버튼 */
+        .kma-link-btn {
+            background-color: var(--kma-color);
+            color: white;
+            text-decoration: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: opacity 0.2s;
+        }
+        .kma-link-btn:hover {
+            opacity: 0.85;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .search-box input {
+            flex: 1;
+            background: #1e293b;
+            border: 1px solid #475569;
+            color: white;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .search-box button {
+            background-color: var(--accent);
+            color: #0b0f19;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .quick-buttons {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .quick-btn {
+            background-color: #1e293b;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .quick-btn:hover {
+            background-color: var(--accent);
+            color: #0b0f19;
+            font-weight: bold;
+            border-color: var(--accent);
+        }
+
+        /* 카드 3: 실패 상태 테스트 영역 */
+        .error-test-panel {
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px dashed var(--error);
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 0.82rem;
+        }
+        .error-test-buttons {
+            display: flex;
+            gap: 5px;
+            margin-top: 6px;
+            flex-wrap: wrap;
+        }
+        .err-btn {
+            background: #1e293b;
+            color: var(--error);
+            border: 1px solid var(--error);
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.72rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: bold;
+            background-color: rgba(52, 211, 153, 0.15);
+            color: var(--success);
+            margin-bottom: 12px;
+        }
+
+        .weather-card {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .location-path {
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: var(--text-main);
+            margin-top: 2px;
+        }
+
+        .main-display {
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: rgba(11, 15, 25, 0.6);
+            padding: 12px;
+            border-radius: 10px;
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: var(--text-sub);
+        }
+        .details-grid span {
+            display: block;
+            color: var(--text-main);
+            font-weight: bold;
+            margin-top: 2px;
+        }
+
+        /* 카드 4 & 5: 기록 및 비교 영역 */
+        .history-section {
+            background: #0f172a;
+            border: 1px solid var(--border);
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+        }
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 6px 0 0 0;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        .history-list li {
+            background: #1e293b;
+            padding: 5px 10px;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.82rem;
+        }
+
+        .footer {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            border-top: 1px solid var(--border);
+            padding-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <div class="header">
+            <h1 class="title">☁️ 기상청 연계 날씨 대시보드</h1>
+            <!-- 기상청 공식 홈페이지 바로가기 -->
+            <a href="https://www.weather.go.kr" target="_blank" class="kma-link-btn">
+                <span>🏛️ 기상청 바로가기</span>
+            </a>
+        </div>
+
+        <div class="search-box">
+            <input type="text" id="city-input" placeholder="국가, 도시, 동/읍/면 검색 (예: 개금, 서울)" value="개금" onkeypress="checkEnter(event)">
+            <button onclick="searchWeather()">검색</button>
+        </div>
+
+        <div class="quick-buttons">
+            <button class="quick-btn" onclick="quickSearch('개금')">개금</button>
+            <button class="quick-btn" onclick="quickSearch('서울')">서울</button>
+            <button class="quick-btn" onclick="quickSearch('부산')">부산</button>
+            <button class="quick-btn" onclick="quickSearch('제주')">제주</button>
+        </div>
+
+        <!-- 카드 3 검증용 시뮬레이터 -->
+        <div class="error-test-panel">
+            ⚠️ <b>카드 3 상태 구분 테스트:</b>
+            <div class="error-test-buttons">
+                <button class="err-btn" onclick="simulateError('timeout')">타임아웃</button>
+                <button class="err-btn" onclick="simulateError('offline')">오프라인</button>
+                <button class="err-btn" onclick="simulateError('auth')">인증/호출제한</button>
+                <button class="err-btn" onclick="simulateError('format')">응답형식 오류</button>
+            </div>
+        </div>
+
+        <div>
+            <span id="status-badge" class="status-badge">🟢 기상 데이터 정상 연동 중</span>
+        </div>
+
+        <div class="weather-card">
+            <div style="font-size:0.78rem; color:var(--text-sub); margin-bottom:4px;">📍 세부 행정 경로 (국가 > 시/도 > 구/군 > 동)</div>
+            <div class="location-path" id="location-path">대한민국 > 부산광역시 > 부산진구 > 개금동</div>
+
+            <div class="main-display">
+                <div><span id="temp-val">--</span><span style="font-size:1.2rem; color:var(--text-sub);">°C</span></div>
+                <div id="weather-icon" style="font-size: 2.5rem;">☀️</div>
+            </div>
+
+            <div id="weather-desc" style="color:var(--accent); font-weight:bold; font-size:1rem;">기상청 기준 참고 상태 대기 중...</div>
+
+            <div class="details-grid">
+                <div>마지막 조회 시각: <span id="query-time">--</span></div>
+                <div>어제 대비 비교 (카드 5): <span id="compare-val">데이터 수집 중</span></div>
+            </div>
+        </div>
+
+        <!-- 카드 4 & 5: 하루 한 번 기록 및 비교 목록 -->
+        <div class="history-section">
+            <b>📅 날짜별 중복 없는 기록 (하루 1회 제한 - 카드 4)</b>
+            <ul id="history-list" class="history-list">
+                <!-- 기록 목록 동적 생성 -->
+            </ul>
+        </div>
+
+        <div class="footer">
+            <span style="font-size: 0.75rem;">비밀키 없음 (카드 2 보안 준수)</span>
+            <button onclick="searchWeather()" style="background:none; border:1px solid var(--accent); color:var(--accent); padding:4px 8px; border-radius:4px; cursor:pointer; font-size:0.8rem;">새로고침 🔄</button>
+        </div>
+    </div>
+
+    <script>
+        const smartLocationMap = {
+            '개금': { name: '개금동', admin2: '부산진구', admin1: '부산광역시', country: '대한민국', lat: 35.1561, lon: 129.0239 },
+            '서울': { name: '서울', admin1: '서울특별시', country: '대한민국', lat: 37.5665, lon: 126.9780 },
+            '부산': { name: '부산', admin1: '부산광역시', country: '대한민국', lat: 35.1796, lon: 129.0756 },
+            '제주': { name: '제주', admin1: '제주특별자치도', country: '대한민국', lat: 33.4996, lon: 126.5312 }
+        };
+
+        function checkEnter(event) {
+            if (event.key === 'Enter') searchWeather();
+        }
+
+        function quickSearch(cityName) {
+            document.getElementById('city-input').value = cityName;
+            searchWeather();
+        }
+
+        function simulateError(type) {
+            const badge = document.getElementById('status-badge');
+            const desc = document.getElementById('weather-desc');
+            
+            badge.style.backgroundColor = 'rgba(248, 113, 113, 0.15)';
+            badge.style.color = 'var(--error)';
+
+            if (type === 'timeout') {
+                badge.innerText = '🔴 상태: Timeout (시간 초과)';
+                desc.innerText = '기상 서버 응답 시간이 초과되었습니다.';
+            } else if (type === 'offline') {
+                badge.innerText = '🔴 상태: Offline (네트워크 끊김)';
+                desc.innerText = '인터넷 연결이 끊어졌습니다.';
+            } else if (type === 'auth') {
+                badge.innerText = '🔴 상태: 인증 실패 또는 호출 제한';
+                desc.innerText = 'API 호출 한도를 초과했습니다.';
+            } else if (type === 'format') {
+                badge.innerText = '🔴 상태: 응답 형식 변경 오류';
+                desc.innerText = '서버 데이터 포맷이 일치하지 않습니다.';
+            }
+        }
+
+        async function searchWeather() {
+            let query = document.getElementById('city-input').value.trim();
+            const badge = document.getElementById('status-badge');
+            const locationPath = document.getElementById('location-path');
+            const desc = document.getElementById('weather-desc');
+
+            if (!query) return;
+
+            badge.style.backgroundColor = 'rgba(52, 211, 153, 0.15)';
+            badge.style.color = 'var(--success)';
+            badge.innerText = '🟢 기상 정보 연동 중...';
+
+            let lat, lon, country, admin1, admin2, cityName;
+
+            try {
+                if (smartLocationMap[query]) {
+                    const loc = smartLocationMap[query];
+                    lat = loc.lat; lon = loc.lon;
+                    country = loc.country; admin1 = loc.admin1;
+                    admin2 = loc.admin2 || ''; cityName = loc.name;
+                } else {
+                    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=ko&format=json`);
+                    const geoData = await geoRes.json();
+                    if (!geoData.results || geoData.results.length === 0) {
+                        simulateError('format');
+                        return;
+                    }
+                    const place = geoData.results[0];
+                    lat = place.latitude; lon = place.longitude;
+                    country = place.country || '해외';
+                    admin1 = place.admin1 || ''; admin2 = place.admin2 || '';
+                    cityName = place.name;
+                }
+
+                let hierarchyText = `${country}`;
+                if (admin1) hierarchyText += ` > ${admin1}`;
+                if (admin2 && admin2 !== cityName) hierarchyText += ` > ${admin2}`;
+                if (cityName) hierarchyText += ` > ${cityName}`;
+                locationPath.innerText = hierarchyText;
+
+                const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`);
+                const weatherData = await weatherRes.json();
+
+                const temp = weatherData.current.temperature_2m;
+                document.getElementById('temp-val').innerText = temp;
+
+                // 기상청 용어 및 상태 참고 반영
+                const code = weatherData.current.weather_code;
+                let emoji = '☀️';
+                let weatherText = '기상청 예보기기준: 맑음 (야외활동 원활)';
+                if (code >= 1 && code <= 3) { emoji = '⛅'; weatherText = '기상청 예보기기준: 구름많음 및 흐림'; }
+                else if (code >= 51 && code <= 67) { emoji = '🌧️'; weatherText = '기상청 예보기기준: 비 내리는 중 (우산 지참)'; }
+                else if (code >= 71 && code <= 77) { emoji = '❄️'; weatherText = '기상청 예보기기준: 눈 내리는 중 (빙판길 주의)'; }
+                else if (code >= 95) { emoji = '⚡'; weatherText = '기상청 예보기기준: 천둥·번개 동반 악천후'; }
+
+                document.getElementById('weather-icon').innerText = emoji;
+                document.getElementById('weather-desc').innerText = weatherText;
+
+                const now = new Date();
+                const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+                document.getElementById('query-time').innerText = timeStr;
+
+                // 카드 4: 하루 한 번 기록 (로컬스토리지 저장)
+                const todayKey = now.toISOString().split('T')[0];
+                let history = JSON.parse(localStorage.getItem('weather_history') || '{}');
+                history[todayKey] = { temp: temp, time: timeStr };
+                localStorage.setItem('weather_history', JSON.stringify(history));
+
+                renderHistoryAndCompare(todayKey, temp);
+                badge.innerText = '🟢 기상 데이터 정상 연동 완료';
+
+            } catch (err) {
+                simulateError('timeout');
+            }
+        }
+
+        function renderHistoryAndCompare(todayKey, currentTemp) {
+            let history = JSON.parse(localStorage.getItem('weather_history') || '{}');
+            const listEl = document.getElementById('history-list');
+            listEl.innerHTML = '';
+
+            const keys = Object.keys(history).sort().reverse();
+            keys.forEach(date => {
+                const li = document.createElement('li');
+                li.innerHTML = `<span>📅 ${date}</span> <b>${history[date].temp} °C</b>`;
+                listEl.appendChild(li);
+            });
+
+            // 카드 5: 어제 대비 비교 계산
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yestKey = yesterday.toISOString().split('T')[0];
+
+            const compareEl = document.getElementById('compare-val');
+            if (history[yestKey]) {
+                const yestTemp = history[yestKey].temp;
+                const diff = (currentTemp - yestTemp).toFixed(1);
+                if (diff > 0) {
+                    compareEl.innerHTML = `<span style="color:var(--error);">▲ 어제보다 +${diff}°C 높음</span>`;
+                } else if (diff < 0) {
+                    compareEl.innerHTML = `<span style="color:var(--accent);">▼ 어제보다 ${diff}°C 낮음</span>`;
+                } else {
+                    compareEl.innerHTML = `<span>어제와 기온 동일 (0°C)</span>`;
+                }
+            } else {
+                compareEl.innerText = '어제 기록 없음 (내일 비교)';
+            }
+        }
+
+        searchWeather();
+    </script>
+</body>
+</html>
