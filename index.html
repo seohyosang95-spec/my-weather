@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -463,5 +464,479 @@
 
         searchWeather();
     </script>
+</body>
+=======
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>글로벌 세밀한 실시간 날씨 대시보드</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #162032;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --accent: #38bdf8;
+            --success: #34d399;
+            --border: #334155;
+            --kma-color: #2563eb;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 560px;
+            background-color: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            padding: 30px;
+            box-sizing: border-box;
+            border: 1px solid var(--border);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        .title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--accent);
+            margin: 0;
+        }
+
+        /* 기상청 바로가기 버튼 스타일 */
+        .kma-link-btn {
+            background-color: var(--kma-color);
+            color: white;
+            text-decoration: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: opacity 0.2s;
+        }
+
+        .kma-link-btn:hover {
+            opacity: 0.85;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .search-box input {
+            flex: 1;
+            background: #1e293b;
+            border: 1px solid #475569;
+            color: white;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent);
+        }
+
+        .search-box button {
+            background-color: var(--accent);
+            color: #0b0f19;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .search-box button:hover {
+            opacity: 0.9;
+        }
+
+        .quick-buttons {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .quick-btn {
+            background-color: #1e293b;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-btn:hover {
+            background-color: var(--accent);
+            color: #0b0f19;
+            font-weight: bold;
+            border-color: var(--accent);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            background-color: rgba(52, 211, 153, 0.15);
+            color: var(--success);
+            margin-bottom: 16px;
+        }
+
+        .weather-card {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .location-info-box {
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding-bottom: 10px;
+        }
+
+        .location-label {
+            font-size: 0.82rem;
+            color: var(--text-sub);
+        }
+
+        .location-path {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--text-main);
+            margin-top: 2px;
+        }
+
+        .main-display {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .temp-group {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+        }
+
+        .weather-icon {
+            font-size: 3rem;
+        }
+
+        .unit {
+            font-size: 1.3rem;
+            color: var(--text-sub);
+            font-weight: normal;
+        }
+
+        .weather-desc {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            background: rgba(11, 15, 25, 0.6);
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .detail-item {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            text-align: center;
+            background: rgba(30, 41, 59, 0.5);
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .detail-item span {
+            display: block;
+            color: var(--text-main);
+            font-size: 1rem;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .footer {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            border-top: 1px solid var(--border);
+            padding-top: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .refresh-btn {
+            background: none;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: var(--accent);
+            color: #0b0f19;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <div class="header">
+            <h1 class="title">🇰🇷 글로벌 세밀한 날씨 대시보드</h1>
+            <!-- 기상청 공식 홈페이지로 연결되는 바로가기 버튼 -->
+            <a href="https://www.weather.go.kr" target="_blank" class="kma-link-btn">
+                <span>🏛️ 기상청 바로가기</span>
+            </a>
+        </div>
+
+        <div class="search-box">
+            <input type="text" id="city-input" placeholder="국가, 도시, 동/읍/면 검색 (예: 개금, 서울, 뉴욕)" value="개금" onkeypress="checkEnter(event)">
+            <button onclick="searchWeather()">검색</button>
+        </div>
+
+        <div class="quick-buttons">
+            <button class="quick-btn" onclick="quickSearch('개금')">개금</button>
+            <button class="quick-btn" onclick="quickSearch('서울')">서울</button>
+            <button class="quick-btn" onclick="quickSearch('부산')">부산</button>
+            <button class="quick-btn" onclick="quickSearch('제주')">제주</button>
+            <button class="quick-btn" onclick="quickSearch('도쿄')">도쿄</button>
+            <button class="quick-btn" onclick="quickSearch('뉴욕')">뉴욕</button>
+        </div>
+
+        <div>
+            <span id="status-badge" class="status-badge">🟢 실시간 데이터 연동 중</span>
+        </div>
+
+        <div class="weather-card">
+            <div class="location-info-box">
+                <div class="location-label">📍 세부 행정 경로 (나라 > 시/도 > 구/군 > 동/읍/면)</div>
+                <div class="location-path" id="location-path">대한민국 > 부산광역시 > 부산진구 > 개금동</div>
+            </div>
+            
+            <div class="main-display">
+                <div class="temp-group">
+                    <span id="temp-val">--</span><span class="unit">°C</span>
+                </div>
+                <div id="weather-icon" class="weather-icon">⏳</div>
+            </div>
+
+            <div class="weather-desc" id="weather-desc">날씨 정보를 불러오는 중입니다...</div>
+
+            <div class="details-grid">
+                <div class="detail-item">
+                    체감온도
+                    <span id="apparent-temp">-- °C</span>
+                </div>
+                <div class="detail-item">
+                    습도
+                    <span id="humidity-val">-- %</span>
+                </div>
+                <div class="detail-item">
+                    풍속
+                    <span id="wind-val">-- m/s</span>
+                </div>
+                <div class="detail-item">
+                    풍향
+                    <span id="wind-dir">--</span>
+                </div>
+                <div class="detail-item">
+                    자외선(UV)
+                    <span id="uv-val">--</span>
+                </div>
+                <div class="detail-item">
+                    가시거리
+                    <span id="visibility-val">-- km</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div>출처: 글로벌 기상청 연동 API</div>
+            <div id="query-time" style="font-size:0.75rem;">조회: --</div>
+            <button class="refresh-btn" onclick="searchWeather()">새로고침 🔄</button>
+        </div>
+    </div>
+
+    <script>
+        const smartLocationMap = {
+            '개금': { name: '개금동', admin2: '부산진구', admin1: '부산광역시', country: '대한민국', lat: 35.1561, lon: 129.0239 },
+            '개금동': { name: '개금동', admin2: '부산진구', admin1: '부산광역시', country: '대한민국', lat: 35.1561, lon: 129.0239 },
+            '서울': { name: '서울', admin1: '서울특별시', country: '대한민국', lat: 37.5665, lon: 126.9780 },
+            '부산': { name: '부산', admin1: '부산광역시', country: '대한민국', lat: 35.1796, lon: 129.0756 },
+            '제주': { name: '제주', admin1: '제주특별자치도', country: '대한민국', lat: 33.4996, lon: 126.5312 },
+            '도쿄': { name: '도쿄', admin1: 'Tokyo', country: '일본', lat: 35.6762, lon: 139.6503 },
+            '뉴욕': { name: '뉴욕', admin1: 'New York', country: '미국', lat: 40.7128, lon: -74.0060 }
+        };
+
+        function checkEnter(event) {
+            if (event.key === 'Enter') {
+                searchWeather();
+            }
+        }
+
+        function quickSearch(cityName) {
+            document.getElementById('city-input').value = cityName;
+            searchWeather();
+        }
+
+        async function searchWeather() {
+            let query = document.getElementById('city-input').value.trim();
+            const statusBadge = document.getElementById('status-badge');
+            const locationPath = document.getElementById('location-path');
+            const weatherDesc = document.getElementById('weather-desc');
+
+            if (!query) {
+                alert('검색할 지역 이름을 입력해주세요!');
+                return;
+            }
+
+            statusBadge.innerText = '⏳ 세부 지역 검색 중...';
+            weatherDesc.innerText = '위치를 확인하고 있습니다.';
+
+            let lat, lon, country, admin1, admin2, cityName;
+
+            try {
+                if (smartLocationMap[query]) {
+                    const loc = smartLocationMap[query];
+                    lat = loc.lat;
+                    lon = loc.lon;
+                    country = loc.country;
+                    admin1 = loc.admin1;
+                    admin2 = loc.admin2 || '';
+                    cityName = loc.name;
+                } else {
+                    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=ko&format=json`);
+                    const geoData = await geoRes.json();
+
+                    if (!geoData.results || geoData.results.length === 0) {
+                        statusBadge.innerText = '🔴 검색 실패';
+                        weatherDesc.innerText = '해당 지역을 찾을 수 없습니다. 올바른 지명을 입력해주세요.';
+                        return;
+                    }
+
+                    const place = geoData.results[0];
+                    lat = place.latitude;
+                    lon = place.longitude;
+                    country = place.country ? place.country : '기타 지역';
+                    admin1 = place.admin1 ? place.admin1 : '';
+                    admin2 = place.admin2 ? place.admin2 : '';
+                    cityName = place.name;
+                }
+
+                let hierarchyText = `${country}`;
+                if (admin1) hierarchyText += ` > ${admin1}`;
+                if (admin2 && admin2 !== cityName) hierarchyText += ` > ${admin2}`;
+                if (cityName) hierarchyText += ` > ${cityName}`;
+                locationPath.innerText = hierarchyText;
+
+                const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,uv_index,visibility`);
+                const weatherData = await weatherRes.json();
+
+                const current = weatherData.current;
+                document.getElementById('temp-val').innerText = current.temperature_2m;
+                document.getElementById('apparent-temp').innerText = `${current.apparent_temperature} °C`;
+                document.getElementById('humidity-val').innerText = `${current.relative_humidity_2m} %`;
+                document.getElementById('wind-val').innerText = `${current.wind_speed_10m} m/s`;
+                
+                const uvIndex = current.uv_index !== undefined ? current.uv_index : '--';
+                document.getElementById('uv-val').innerText = uvIndex;
+
+                const visibilityKm = current.visibility !== undefined ? (current.visibility / 1000).toFixed(1) : '--';
+                document.getElementById('visibility-val').innerText = `${visibilityKm} km`;
+
+                const windDeg = current.wind_direction_10m;
+                let windDirText = `${windDeg}°`;
+                if (windDeg >= 337.5 || windDeg < 22.5) windDirText = '북풍 (N)';
+                else if (windDeg < 67.5) windDirText = '북동풍 (NE)';
+                else if (windDeg < 112.5) windDirText = '동풍 (E)';
+                else if (windDeg < 157.5) windDirText = '남동풍 (SE)';
+                else if (windDeg < 202.5) windDirText = '남풍 (S)';
+                else if (windDeg < 247.5) windDirText = '남서풍 (SW)';
+                else if (windDeg < 292.5) windDirText = '서풍 (W)';
+                else if (windDeg < 337.5) windDirText = '북서풍 (NW)';
+                document.getElementById('wind-dir').innerText = windDirText;
+
+                const code = current.weather_code;
+                let emoji = '☀️';
+                let desc = '맑음 (쾌적한 날씨)';
+                
+                if (code >= 1 && code <= 3) { emoji = '⛅'; desc = '구름 조금 및 흐림'; }
+                else if (code >= 45 && code <= 48) { emoji = '🌫️'; desc = '안개 낀 날씨'; }
+                else if (code >= 51 && code <= 67) { emoji = '🌧️'; desc = '비 내리는 중'; }
+                else if (code >= 71 && code <= 77) { emoji = '❄️'; desc = '눈 내리는 중'; }
+                else if (code >= 80 && code <= 82) { emoji = '🌦️'; desc = '소나기'; }
+                else if (code >= 95) { emoji = '⚡'; desc = '천둥 번개 동반'; }
+
+                document.getElementById('weather-icon').innerText = emoji;
+                document.getElementById('weather-desc').innerText = `기상 상태: ${desc}`;
+
+                const now = new Date();
+                const timeString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+                document.getElementById('query-time').innerText = `조회: ${timeString}`;
+                statusBadge.innerText = '🟢 실시간 연동 완료';
+
+            } catch (err) {
+                statusBadge.innerText = '🔴 네트워크 오류';
+                weatherDesc.innerText = '데이터를 불러오는 중 문제가 발생했습니다.';
+            }
+        }
+
+        searchWeather();
+        
+    </script>
+
 </body>
 </html>
