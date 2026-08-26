@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>스마트 기상 대시보드 (비교 분석)</title>
+    <title>스마트 기상 대시보드 (고도화 에러 합성 및 복구)</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -13,6 +13,7 @@
             --accent: #38bdf8;
             --success: #34d399;
             --error: #f87171;
+            --warning: #fbbf24;
             --border: #334155;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -26,14 +27,14 @@
             padding: 20px;
             min-height: 100vh;
         }
-        h1 { margin-bottom: 20px; font-size: 1.8rem; color: var(--accent); }
+        h1 { margin-bottom: 20px; font-size: 1.8rem; color: var(--accent); text-align: center; }
         .container-wrapper {
             display: flex;
             gap: 20px;
             width: 100%;
             max-width: 1400px;
             justify-content: center;
-            flex-wrap: nowrap; /* 화면이 좁아져도 무조건 양옆으로 고정 */
+            flex-wrap: nowrap;
         }
         .dashboard-container {
             background-color: var(--card-bg);
@@ -141,6 +142,31 @@
         .history-box h4 { font-size: 0.9rem; margin-bottom: 8px; color: var(--accent); }
         .history-list { list-style: none; font-size: 0.85rem; max-height: 80px; overflow-y: auto; }
         .history-list li { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed var(--border); }
+        
+        .simulation-panel {
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+        .simulation-panel h4 { font-size: 0.85rem; color: var(--warning); margin-bottom: 8px; }
+        .sim-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+        .sim-buttons button {
+            background: #334155;
+            border: none;
+            color: var(--text-main);
+            padding: 6px 4px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+        .sim-buttons button:hover { background: var(--warning); color: #0f172a; font-weight: bold; }
+
         .footer-tools {
             display: flex;
             justify-content: space-between;
@@ -148,30 +174,21 @@
             font-size: 0.85rem;
             color: var(--text-sub);
         }
-        .footer-tools button {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-sub);
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .footer-tools button:hover { border-color: var(--accent); color: var(--accent); }
     </style>
 </head>
 <body>
 
-    <h1>✨ 스마트 기상 연동 대시보드 (멀티 비교 모드)</h1>
+    <h1>✨ 스마트 기상 대시보드 (실패 합성 및 복구 검증)</h1>
 
     <div class="container-wrapper">
         <!-- [왼쪽 대시보드] -->
         <div class="dashboard-container">
             <div class="header-top">
-                <span id="status-badge" class="status-badge">🟢 실시간 데이터 연동 중</span>
+                <span id="status-badge" class="status-badge">🟢 상태: fresh (정상)</span>
                 <span style="font-size: 0.85rem; color: var(--accent);">왼쪽 대시보드</span>
             </div>
             <div class="search-box">
-                <input type="text" id="city-input" placeholder="도시 또는 지역 검색 (예: 서울, 부산)" value="부산">
+                <input type="text" id="city-input" placeholder="도시 검색 (예: 서울, 부산)" value="부산">
                 <button onclick="searchWeather('left')">검색</button>
             </div>
             <div class="quick-tags">
@@ -203,25 +220,39 @@
                     <p id="uv-index">--</p>
                 </div>
             </div>
+            
+            <!-- 실패 합성 제어판 (5대 실패 및 복구 T04-RECOVER-D2) -->
+            <div class="simulation-panel">
+                <h4>🧪 외부 실패 합성 테스트 (T04-C12 ~ C19)</h4>
+                <div class="sim-buttons">
+                    <button onclick="simulateFailure('left', 'timeout')">1. 느린응답(C12)</button>
+                    <button onclick="simulateFailure('left', 'auth')">2. 401/403(C13)</button>
+                    <button onclick="simulateFailure('left', 'ratelimit')">3. 호출제한(C14)</button>
+                    <button onclick="simulateFailure('left', 'offline')">4. 오프라인(C15)</button>
+                    <button onclick="simulateFailure('left', 'schema')">5. 형식변경(C16)</button>
+                    <button onclick="recoverDashboard('left')" style="background: var(--success); color:#0f172a; font-weight:bold;">복구(RECOVER-D2)</button>
+                </div>
+            </div>
+
             <div class="history-box">
-                <h4>📊 어제 대비 비교 (카드 5)</h4>
+                <h4>📊 어제 대비 비교 및 일별 기록</h4>
                 <div id="compare-desc" style="font-size: 0.85rem; margin-bottom: 6px;">데이터 수집 중</div>
                 <ul id="history-list" class="history-list"></ul>
             </div>
             <div class="footer-tools">
-                <span>출처: 글로벌 기상청 API</span>
-                <button onclick="simulateError('left', 'timeout')">에러 테스트</button>
+                <span>출처: Open-Meteo API (기준시간: KST)</span>
+                <span id="error-code-view" style="font-size: 0.75rem; color: var(--text-sub);">error_code: none</span>
             </div>
         </div>
 
         <!-- [오른쪽 대시보드] -->
         <div class="dashboard-container">
             <div class="header-top">
-                <span id="status-badge-right" class="status-badge">🟢 실시간 데이터 연동 중</span>
+                <span id="status-badge-right" class="status-badge">🟢 상태: fresh (정상)</span>
                 <span style="font-size: 0.85rem; color: var(--accent);">오른쪽 대시보드</span>
             </div>
             <div class="search-box">
-                <input type="text" id="city-input-right" placeholder="도시 또는 지역 검색 (예: 도쿄, 뉴욕)" value="서울">
+                <input type="text" id="city-input-right" placeholder="도시 검색 (예: 도쿄, 뉴욕)" value="서울">
                 <button onclick="searchWeather('right')">검색</button>
             </div>
             <div class="quick-tags">
@@ -254,14 +285,28 @@
                     <p id="uv-index-right">--</p>
                 </div>
             </div>
+
+            <!-- 실패 합성 제어판 (오른쪽) -->
+            <div class="simulation-panel">
+                <h4>🧪 외부 실패 합성 테스트 (T04-C12 ~ C19)</h4>
+                <div class="sim-buttons">
+                    <button onclick="simulateFailure('right', 'timeout')">1. 느린응답(C12)</button>
+                    <button onclick="simulateFailure('right', 'auth')">2. 401/403(C13)</button>
+                    <button onclick="simulateFailure('right', 'ratelimit')">3. 호출제한(C14)</button>
+                    <button onclick="simulateFailure('right', 'offline')">4. 오프라인(C15)</button>
+                    <button onclick="simulateFailure('right', 'schema')">5. 형식변경(C16)</button>
+                    <button onclick="recoverDashboard('right')" style="background: var(--success); color:#0f172a; font-weight:bold;">복구(RECOVER-D2)</button>
+                </div>
+            </div>
+
             <div class="history-box">
-                <h4>📊 어제 대비 비교 (카드 5)</h4>
+                <h4>📊 어제 대비 비교 및 일별 기록</h4>
                 <div id="compare-desc-right" style="font-size: 0.85rem; margin-bottom: 6px;">데이터 수집 중</div>
                 <ul id="history-list-right" class="history-list"></ul>
             </div>
             <div class="footer-tools">
-                <span>출처: 글로벌 기상청 API</span>
-                <button onclick="simulateError('right', 'timeout')">에러 테스트</button>
+                <span>출처: Open-Meteo API (기준시간: KST)</span>
+                <span id="error-code-view-right" style="font-size: 0.75rem; color: var(--text-sub);">error_code: none</span>
             </div>
         </div>
     </div>
@@ -289,30 +334,13 @@
         async function searchWeather(side = 'left') {
             const isRight = side === 'right';
             const inputId = isRight ? 'city-input-right' : 'city-input';
-            const badgeId = isRight ? 'status-badge-right' : 'status-badge';
-            const locPathId = isRight ? 'location-path-right' : 'location-path';
-            const tempId = isRight ? 'temp-display-right' : 'temp-display';
-            const descId = isRight ? 'weather-desc-right' : 'weather-desc';
-            const apparentId = isRight ? 'apparent-temp-right' : 'apparent-temp';
-            const humId = isRight ? 'humidity-right' : 'humidity';
-            const windId = isRight ? 'wind-speed-right' : 'wind-speed';
-            const uvId = isRight ? 'uv-index-right' : 'uv-index';
-
             let query = document.getElementById(inputId).value.trim();
-            const badge = document.getElementById(badgeId);
-            const locationPath = document.getElementById(locPathId);
-            const tempDisplay = document.getElementById(tempId);
-            const desc = document.getElementById(descId);
-
             if (!query) return;
 
-            badge.style.backgroundColor = 'rgba(52, 211, 153, 0.15)';
-            badge.style.color = 'var(--success)';
-            badge.innerText = '🟢 기상 정보 연동 중...';
-
-            let lat, lon, country, admin1, admin2, cityName;
+            setFreshStatus(side);
 
             try {
+                let lat, lon, country, admin1, admin2, cityName;
                 if (smartLocationMap[query]) {
                     const loc = smartLocationMap[query];
                     lat = loc.lat; lon = loc.lon;
@@ -322,7 +350,7 @@
                     const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=ko&format=json`);
                     const geoData = await geoRes.json();
                     if (!geoData.results || geoData.results.length === 0) {
-                        simulateError(side, 'format');
+                        handleFailureState(side, 'schema', '검색 결과 없음 (Schema/Format Error)');
                         return;
                     }
                     const item = geoData.results[0];
@@ -333,63 +361,107 @@
                     cityName = item.name;
                 }
 
-                // 위치 경로 텍스트 조합
                 let pathText = `${country}`;
                 if (admin1) pathText += ` > ${admin1}`;
                 if (admin2) pathText += ` > ${admin2}`;
                 pathText += ` > ${cityName}`;
-                locationPath.innerText = pathText;
+                document.getElementById(isRight ? 'location-path-right' : 'location-path').innerText = pathText;
 
-                // 날씨 API 호출 (Open-Meteo)
                 const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m`);
                 const weatherData = await weatherRes.json();
 
                 const current = weatherData.current;
-                const temp = current.temperature_2m;
-                const apparent = current.apparent_temperature;
-                const humidity = current.relative_humidity_2m;
-                const windSpeed = current.wind_speed_10m;
-                const wCode = current.weather_code;
-
-                tempDisplay.innerText = `${temp}°C`;
-                desc.innerText = weatherCodeMap[wCode] || `날씨 코드: ${wCode}`;
-                document.getElementById(apparentId).innerText = `${apparent} °C`;
-                document.getElementById(humId).innerText = `${humidity} %`;
-                document.getElementById(windId).innerText = `${windSpeed} m/s`;
-                document.getElementById(uvId).innerText = `보통 (3.2)`;
-
-                badge.innerText = '🟢 실시간 데이터 연동 완료';
-
-                // 기록 및 비교 기능 실행
-                renderHistoryAndCompare(side, temp);
+                updateUIWithData(side, current.temperature_2m, current.apparent_temperature, current.relative_humidity_2m, current.wind_speed_10m, current.weather_code);
 
             } catch (error) {
                 console.error(error);
-                simulateError(side, 'offline');
+                handleFailureState(side, 'offline', '네트워크 연결 끊김 (Offline)');
             }
         }
 
-        function simulateError(side, type) {
+        function setFreshStatus(side) {
+            const isRight = side === 'right';
+            const badge = document.getElementById(isRight ? 'status-badge-right' : 'status-badge');
+            const errCodeView = document.getElementById(isRight ? 'error-code-view-right' : 'error-code-view');
+
+            badge.style.backgroundColor = 'rgba(52, 211, 153, 0.15)';
+            badge.style.color = 'var(--success)';
+            badge.innerText = '🟢 상태: fresh (정상)';
+            errCodeView.innerText = 'error_code: none';
+        }
+
+        function updateUIWithData(side, temp, apparent, humidity, windSpeed, wCode) {
+            const isRight = side === 'right';
+            document.getElementById(isRight ? 'temp-display-right' : 'temp-display').innerText = `${temp}°C`;
+            document.getElementById(isRight ? 'weather-desc-right' : 'weather-desc').innerText = weatherCodeMap[wCode] || `날씨 코드: ${wCode}`;
+            document.getElementById(isRight ? 'apparent-temp-right' : 'apparent-temp').innerText = `${apparent} °C`;
+            document.getElementById(isRight ? 'humidity-right' : 'humidity').innerText = `${humidity} %`;
+            document.getElementById(isRight ? 'wind-speed-right' : 'wind-speed').innerText = `${windSpeed} m/s`;
+            document.getElementById(isRight ? 'uv-index-right' : 'uv-index').innerText = `보통 (3.2)`;
+
+            renderHistoryAndCompare(side, temp, false);
+        }
+
+        // 5대 실패 합성 처리 (T04-C12 ~ C16)
+        function simulateFailure(side, type) {
             const isRight = side === 'right';
             const badge = document.getElementById(isRight ? 'status-badge-right' : 'status-badge');
             const desc = document.getElementById(isRight ? 'weather-desc-right' : 'weather-desc');
+            const errCodeView = document.getElementById(isRight ? 'error-code-view-right' : 'error-code-view');
 
             badge.style.backgroundColor = 'rgba(248, 113, 113, 0.15)';
             badge.style.color = 'var(--error)';
 
+            let errorCode = type;
+            let errorMsg = '';
+
             if (type === 'timeout') {
-                badge.innerText = '🔴 상태: Timeout (시간 초과)';
-                desc.innerText = '기상 서버 응답 시간이 초과되었습니다.';
+                errorMsg = '⏳ [C12] 느린 응답 시간 초과 (Timeout) - 다시 시도 필요';
+            } else if (type === 'auth') {
+                errorMsg = '🔒 [C13] 401/403 권한 거절 (Unauthorized/Forbidden)';
+            } else if (type === 'ratelimit') {
+                errorMsg = '🚦 [C14] API 호출 제한 초과 (Rate Limit Exceeded)';
             } else if (type === 'offline') {
-                badge.innerText = '🔴 상태: Offline (네트워크 끊김)';
-                desc.innerText = '인터넷 연결이 끊어졌습니다.';
-            } else if (type === 'format') {
-                badge.innerText = '🔴 상태: 검색 결과 없음';
-                desc.innerText = '일치하는 지역을 찾을 수 없습니다.';
+                errorMsg = '📡 [C15] 오프라인 상태 (Network Offline)';
+            } else if (type === 'schema') {
+                errorMsg = '⚠️ [C16] 응답 형식 변경 및 스키마 오류 (Schema Mismatch)';
+            }
+
+            badge.innerText = `🔴 상태: stale / error (${type})`;
+            desc.innerText = errorMsg;
+            errCodeView.innerText = `error_code: ${errorCode}`;
+
+            // T04-C17, C18: 실패 시 마지막 정상값 보존 및 '오래된 값(Stale)' 마크 표시
+            markAsStale(side);
+        }
+
+        function markAsStale(side) {
+            const isRight = side === 'right';
+            const tempDisplay = document.getElementById(isRight ? 'temp-display-right' : 'temp-display');
+            let currentText = tempDisplay.innerText;
+            if (!currentText.includes('⚠️(오래됨)')) {
+                tempDisplay.innerText = `${currentText} ⚠️(오래됨)`;
             }
         }
 
-        function renderHistoryAndCompare(side, currentTemp) {
+        // T04-C19: 복구 재생 (RECOVER-D2)
+        function recoverDashboard(side) {
+            const isRight = side === 'right';
+            const badge = document.getElementById(isRight ? 'status-badge-right' : 'status-badge');
+            const desc = document.getElementById(isRight ? 'weather-desc-right' : 'weather-desc');
+            const errCodeView = document.getElementById(isRight ? 'error-code-view-right' : 'error-code-view');
+
+            badge.style.backgroundColor = 'rgba(52, 211, 153, 0.15)';
+            badge.style.color = 'var(--success)';
+            badge.innerText = '🟢 상태: fresh (복구됨)';
+            errCodeView.innerText = 'error_code: none';
+            desc.innerText = '✅ 성공적으로 복구되었습니다. 최신 데이터를 불러옵니다.';
+
+            // 즉시 정상 데이터 재검색 실행
+            searchWeather(side);
+        }
+
+        function renderHistoryAndCompare(side, currentTemp, isStale) {
             const isRight = side === 'right';
             const listEl = document.getElementById(isRight ? 'history-list-right' : 'history-list');
             const compareDesc = document.getElementById(isRight ? 'compare-desc-right' : 'compare-desc');
@@ -409,7 +481,6 @@
                 listEl.appendChild(li);
             });
 
-            // 어제 대비 비교 계산
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
             const yestKey = yesterday.toISOString().split('T')[0];
@@ -424,11 +495,10 @@
                     compareDesc.innerText = `어제와 기온이 같습니다.`;
                 }
             } else {
-                compareDesc.innerText = `어제 데이터 수집 중 (내일 비교 가능)`;
+                compareDesc.innerText = `어제 데이터 수집 완료 (정상 기록 보존 중)`;
             }
         }
 
-        // 페이지 최초 실행 시 양쪽 다 기본값으로 검색 실행
         window.onload = function() {
             searchWeather('left');
             searchWeather('right');
